@@ -102,11 +102,12 @@ function commit(flush = false) {
     insertSession({
       app: current.ctx.app,
       title: current.ctx.title,
-      filePath: "",
-      start_ts: current.start.valueOf(),
-      end_ts: end.valueOf(),
-      duration_sec: dur,
-    });
+      file_path: '', // match DB column
+      start: current.start.valueOf(),
+      end: end.valueOf(),
+      duration: dur
+  });
+
   } else {
     console.log("⏭️ Ignoring short session (<5s)");
   }

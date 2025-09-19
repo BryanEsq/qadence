@@ -1,162 +1,102 @@
-import sqlite3 from 'sqlite3'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import fs from 'fs'
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "node:path";
+import os from "node:os";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+let db;
 
-let db = null
-let dbFile = null
+export async function ensureDB() {
+  if (db) return db;
 
-export async function ensureDB(basePath) {
-  dbFile = path.join(basePath, 'qadence.sqlite')
-  const exists = fs.existsSync(dbFile)
-  db = new sqlite3.Database(dbFile)
-  if (!exists) {
-    console.log('🆕 Creating new DB at', dbFile)
-    await initSchema()
-  } else {
-    console.log('📂 Using existing database at', dbFile)
-  }
+  const dbPath = path.join(os.homedir(), "AppData", "Roaming", "qadence", "qadence.sqlite");
 
-  // 🔑 Always check schema after opening DB
-  await migrateSchema()
-}
+  db = await open({
+    filename: dbPath,
+    driver: sqlite3.Database,
+  });
 
-function initSchema() {
-  return new Promise((resolve, reject) => {
-    db.exec(
-      `CREATE TABLE IF NOT EXISTS sessions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        app TEXT,
-        title TEXT,
-        file_path TEXT,
-        start_ts INTEGER,
-        end_ts INTEGER,
-        duration_sec INTEGER
-      );`,
-      err => {
-        if (err) reject(err)
-        else resolve()
-      }
+  // Create table if not exists
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      app TEXT,
+      title TEXT,
+      file_path TEXT,
+      start_ts INTEGER,
+      end_ts INTEGER,
+      duration_sec INTEGER
     )
-  })
+  `);
+
+  return db;
 }
 
-async function migrateSchema() {
-  const expectedColumns = [
-    { name: 'id', type: 'INTEGER' },
-    { name: 'app', type: 'TEXT' },
-    { name: 'title', type: 'TEXT' },
-    { name: 'file_path', type: 'TEXT' },
-    { name: 'start_ts', type: 'INTEGER' },
-    { name: 'end_ts', type: 'INTEGER' },
-    { name: 'duration_sec', type: 'INTEGER' },
-  ]
+export async function insertSession(session) {
+  const dbConn = await ensureDB();
 
-  const existing = await getTableInfo('sessions')
-  const existingNames = existing.map(col => col.name)
-
-  console.log('🔍 Existing session table columns:', existingNames)
-
-  for (const col of expectedColumns) {
-    if (!existingNames.includes(col.name)) {
-      await runSQL(`ALTER TABLE sessions ADD COLUMN ${col.name} ${col.type}`)
-      console.log(`🔧 Migrated DB: added missing column '${col.name}' (${col.type})`)
-    }
-  }
-}
-
-function getTableInfo(table) {
-  return new Promise((resolve, reject) => {
-    db.all(`PRAGMA table_info(${table});`, (err, rows) => {
-      if (err) reject(err)
-      else resolve(rows)
-    })
-  })
-}
-
-function runSQL(sql) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, err => {
-      if (err) reject(err)
-      else resolve()
-    })
-  })
-}
-
-export function insertSession(session) {
-  return new Promise((resolve, reject) => {
-    const sql = `INSERT INTO sessions
-      (app, title, file_path, start_ts, end_ts, duration_sec)
-      VALUES (?, ?, ?, ?, ?, ?)`
-    const params = [
+  await dbConn.run(
+    `INSERT INTO sessions (app, title, file_path, start_ts, end_ts, duration_sec)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
       session.app,
       session.title,
-      session.filePath || '',
-      session.start_ts,
-      session.end_ts,
-      session.duration_sec
+      session.file_path || "",
+      session.start,
+      session.end,
+      session.duration,
     ]
-    db.run(sql, params, function (err) {
-      if (err) {
-        console.error('❌ insertSession error:', err)
-        reject(err)
-      } else {
-        console.log(
-          `✅ insertSession OK: id=${this.lastID} app=${session.app} dur=${session.duration_sec}s`
-        )
-        resolve(this.lastID)
-      }
-    })
-  })
+  );
 }
 
-export function getSessionsBetween(startISO, endISO) {
-  return new Promise((resolve, reject) => {
-    const start = new Date(startISO).getTime()
-    const end = new Date(endISO).getTime()
-    db.all(
-      `SELECT * FROM sessions WHERE start_ts >= ? AND end_ts <= ? ORDER BY start_ts ASC`,
-      [start, end],
-      (err, rows) => {
-        if (err) {
-          console.error('❌ getSessionsBetween error:', err)
-          reject(err)
-        } else {
-          console.log(`📊 getSessionsBetween ${rows.length} rows`)
-          resolve(rows)
-        }
-      }
-    )
-  })
+// ✅ Alias DB fields → frontend-friendly
+export async function getSessionsBetween(start, end) {
+  const dbConn = await ensureDB();
+  const rows = await dbConn.all(
+    `SELECT * FROM sessions WHERE start_ts BETWEEN ? AND ? ORDER BY start_ts ASC`,
+    [start, end]
+  );
+
+  return rows.map((r) => ({
+    id: r.id,
+    app: r.app,
+    title: r.title,
+    file_path: r.file_path,
+    start: r.start_ts,        // alias
+    end: r.end_ts,            // alias
+    duration: r.duration_sec, // alias
+  }));
 }
 
-export function getSummaries(period = 'day') {
-  return new Promise((resolve, reject) => {
-    let sql = `SELECT app, SUM(duration_sec) as total_sec
-               FROM sessions
-               GROUP BY app
-               ORDER BY total_sec DESC`
-    db.all(sql, [], (err, rows) => {
-      if (err) {
-        console.error('❌ getSummaries error:', err)
-        reject(err)
-      } else {
-        console.log(`📈 getSummaries ${rows.length} rows`)
-        resolve({ period, rows })
-      }
-    })
-  })
-}
+// ✅ Summaries still aggregated by app
+export async function getSummaries(period = "day") {
+  const dbConn = await ensureDB();
 
-export function exportData(format, options) {
-  // TODO: implement later
-  console.log('⬇️ exportData not yet implemented')
-  return {}
+  let groupExpr;
+  switch (period) {
+    case "week":
+      groupExpr = "strftime('%Y-%W', start_ts/1000, 'unixepoch')";
+      break;
+    case "month":
+      groupExpr = "strftime('%Y-%m', start_ts/1000, 'unixepoch')";
+      break;
+    default:
+      groupExpr = "date(start_ts/1000, 'unixepoch')";
+  }
+
+  const rows = await dbConn.all(
+    `SELECT app, SUM(duration_sec) as total_seconds
+       FROM sessions
+      GROUP BY app, ${groupExpr}
+      ORDER BY total_seconds DESC`
+  );
+
+  return rows.map((r) => ({
+    app: r.app,
+    total_seconds: r.total_seconds,
+    duration: r.total_seconds, // alias for frontend
+  }));
 }
 
 export function dbPath() {
-  return dbFile
+  return db?.filename;
 }

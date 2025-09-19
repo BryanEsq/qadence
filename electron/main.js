@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ensureDB, dbPath, getSummaries, getSessionsBetween, exportData } from '../backend/db.js'
+import { ensureDB, dbPath, getSummaries, getSessionsBetween } from '../backend/db.js'
 import { startTracker, stopTracker } from '../backend/tracker.js'
 import { setDbPath, roundToSixMinutes } from '../backend/rounder.js'
 
