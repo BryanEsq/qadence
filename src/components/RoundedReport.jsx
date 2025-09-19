@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { friendlyAppName, cleanTitle } from '../utils/appNames'
 import dayjs from 'dayjs'
+import { friendlyAppName, cleanTitle } from '../utils/appNames'
 
 export default function RoundedReport() {
   const [report, setReport] = useState(null)
@@ -13,15 +13,32 @@ export default function RoundedReport() {
         ? dayjs(dateOverride).startOf('day').toISOString()
         : dayjs().toISOString()
 
-    const data = await window.qadence.round(iso, period === 'custom' ? 'day' : period)
-    setReport(data)
+    try {
+      const data = await window.qadence.round(iso, period === 'custom' ? 'day' : period)
+      setReport(data)
+    } catch (err) {
+      console.error('❌ Error loading rounded report:', err)
+      setReport(null)
+    }
   }
 
   useEffect(() => {
     load(range, customDate)
   }, [range, customDate])
 
+  function toCSV(r) {
+    const headers = ['App', 'Title', 'Raw Minutes', 'Rounded Minutes']
+    const rows = r.entries.map(e => [
+      friendlyAppName(e.app),
+      cleanTitle(e.app, e.title),
+      Math.round(e.seconds / 60),
+      e.rounded_minutes,
+    ])
+    return [headers.join(','), ...rows.map(x => x.join(','))].join('\n')
+  }
+
   async function exportData(format) {
+    if (!report) return
     const blob = new Blob(
       [format === 'csv' ? toCSV(report) : JSON.stringify(report, null, 2)],
       { type: format === 'csv' ? 'text/csv' : 'application/json' }
@@ -32,17 +49,6 @@ export default function RoundedReport() {
     a.download = `qadence_${report.period}_${dayjs().format('YYYYMMDD')}.${format}`
     a.click()
     URL.revokeObjectURL(url)
-  }
-
-  function toCSV(r) {
-    const headers = ['App', 'Title', 'Raw Minutes', 'Rounded Minutes']
-    const rows = r.entries.map(e => [
-      e.app,
-      e.title,
-      Math.round(e.seconds / 60),
-      e.rounded_minutes,
-    ])
-    return [headers.join(','), ...rows.map(x => x.join(','))].join('\n')
   }
 
   return (
@@ -65,6 +71,7 @@ export default function RoundedReport() {
             type="date"
             value={customDate}
             onChange={e => setCustomDate(e.target.value)}
+            style={{ marginLeft: 8 }}
           />
         )}
 
@@ -98,14 +105,14 @@ export default function RoundedReport() {
               </tr>
             </thead>
             <tbody>
-             {report.entries.map((e, i) => (
+              {report.entries.map((e, i) => (
                 <tr key={i}>
-                    <td>{friendlyAppName(e.app)}</td>
-                    <td>{cleanTitle(e.app, e.title)}</td>
-                    <td style={{ textAlign: 'right' }}>{Math.round(e.seconds / 60)}</td>
-                    <td style={{ textAlign: 'right' }}>{e.rounded_minutes}</td>
-                 </tr>
-             ))}
+                  <td>{friendlyAppName(e.app)}</td>
+                  <td>{cleanTitle(e.app, e.title)}</td>
+                  <td style={{ textAlign: 'right' }}>{Math.round(e.seconds / 60)}</td>
+                  <td style={{ textAlign: 'right' }}>{e.rounded_minutes}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </>

@@ -15,7 +15,9 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
   win.loadURL('http://localhost:5173')
@@ -23,8 +25,8 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await ensureDB(app.getPath('userData'))
-  setDbPath(dbPath())         // ✅ set rounder’s dbPath
-  startTracker()              // ✅ begin window tracking
+  setDbPath(dbPath())
+  startTracker()
   createWindow()
 })
 
@@ -36,17 +38,9 @@ app.on('before-quit', () => {
   stopTracker()
 })
 
-// IPC Handlers
+// IPC handlers
 ipcMain.handle('db:path', () => dbPath())
-ipcMain.handle('db:sessionsBetween', (_e, args) =>
-  getSessionsBetween(args.start, args.end)
-)
-ipcMain.handle('db:summaries', (_e, args) =>
-  getSummaries(args.period)
-)
-ipcMain.handle('db:round', (_e, args) =>
-  roundToSixMinutes(args.isoDate, args.period || 'day')
-)
-ipcMain.handle('db:export', (_e, args) =>
-  exportData(args.format, args.options || {})
-)
+ipcMain.handle('db:sessionsBetween', (_e, args) => getSessionsBetween(args.start, args.end))
+ipcMain.handle('db:summaries', (_e, args) => getSummaries(args.period))
+ipcMain.handle('db:round', (_e, args) => roundToSixMinutes(args.isoDate, args.period || 'day'))
+ipcMain.handle('db:export', (_e, args) => exportData(args.format, args.options || {}))

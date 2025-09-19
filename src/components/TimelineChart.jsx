@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import dayjs from 'dayjs'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { friendlyAppName } from '../utils/appNames'
 
@@ -16,15 +15,18 @@ export default function TimelineChart() {
             minutes: Math.round(r.total_sec / 60),
           }))
         )
+      } else {
+        setData([])
       }
     } catch (err) {
-      console.error('❌ TimelineChart load error:', err)
+      console.error('❌ Error loading timeline:', err)
+      setData([])
     }
   }
 
   useEffect(() => {
     load()
-    const id = setInterval(load, 10000) // refresh every 10s
+    const id = setInterval(load, 10000)
     return () => clearInterval(id)
   }, [])
 
@@ -39,7 +41,7 @@ export default function TimelineChart() {
             <XAxis dataKey="app" />
             <YAxis />
             <Tooltip />
-            <Bar dataKey="minutes" fill="#8884d8" />
+            <Bar dataKey="minutes" />
           </BarChart>
         </ResponsiveContainer>
       )}
