@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { friendlyAppName } from '../utils/appNames'
 
 export default function TimelineChart() {
   const [data, setData] = useState([])
 
   async function load() {
-    const summary = await window.qadence.summaries('day')
-    if (summary && summary.rows) {
-      setData(summary.rows.map(r => ({
-        app: r.app,
-        minutes: Math.round(r.total_sec / 60)
-      })))
+    try {
+      const summary = await window.qadence.summaries('day')
+      if (summary && summary.rows) {
+        setData(
+          summary.rows.map(r => ({
+            app: friendlyAppName(r.app),
+            minutes: Math.round(r.total_sec / 60),
+          }))
+        )
+      }
+    } catch (err) {
+      console.error('❌ TimelineChart load error:', err)
     }
   }
 

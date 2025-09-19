@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { friendlyAppName, cleanTitle } from '../utils/appNames'
 import dayjs from 'dayjs'
 
 export default function RoundedReport() {
@@ -97,14 +98,14 @@ export default function RoundedReport() {
               </tr>
             </thead>
             <tbody>
-              {report.entries.map((e, i) => (
+             {report.entries.map((e, i) => (
                 <tr key={i}>
-                  <td>{e.app}</td>
-                  <td>{e.title}</td>
-                  <td style={{ textAlign: 'right' }}>{Math.round(e.seconds / 60)}</td>
-                  <td style={{ textAlign: 'right' }}>{e.rounded_minutes}</td>
-                </tr>
-              ))}
+                    <td>{friendlyAppName(e.app)}</td>
+                    <td>{cleanTitle(e.app, e.title)}</td>
+                    <td style={{ textAlign: 'right' }}>{Math.round(e.seconds / 60)}</td>
+                    <td style={{ textAlign: 'right' }}>{e.rounded_minutes}</td>
+                 </tr>
+             ))}
             </tbody>
           </table>
         </>
