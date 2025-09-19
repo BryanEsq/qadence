@@ -1,0 +1,33 @@
+{
+  "name": "qadence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Qadence: Background time tracker with 6-minute rounding, Electron + React + SQLite",
+  "main": "electron/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "build:ui": "vite build",
+    "build": "vite build",
+    "start": "electron .",
+    "postinstall": "node -e \"console.log('✅ Postinstall complete')\""
+  },
+  "dependencies": {
+    "active-win": "^7.7.0",
+    "dayjs": "^1.11.13",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.15.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^8.2.2",
+    "electron": "^38.1.2",
+    "vite": "^7.1.6",
+    "wait-on": "^8.0.2"
+  }
+}

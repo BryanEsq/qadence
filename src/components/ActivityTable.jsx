@@ -1,0 +1,1 @@
+export default function ActivityTable(){return <div>Table</div>}
