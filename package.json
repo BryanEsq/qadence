@@ -6,10 +6,11 @@
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "dev": "concurrently -k \"vite --config frontend/vite.config.js\" \"wait-on tcp:5173 && electron .\"",
     "build:ui": "vite build",
-    "build": "vite build",
+    "build": "vite build --config frontend/vite.config.js",
     "start": "electron .",
+    "electron-build": "electron-builder",
     "postinstall": "node -e \"console.log('✅ Postinstall complete')\""
   },
   "dependencies": {

@@ -66,6 +66,15 @@ async function tick() {
   }
 }
 
+function cleanTitle(process, title) {
+  if (["msedge.exe", "chrome.exe"].includes(process.toLowerCase())) {
+    return title.replace(/\s*-\s*\d+\+?\s*pages?$/i, "") // strip "and X more pages"
+                .replace(/\s*-\s*Microsoft Edge$/i, "")
+                .replace(/\s*-\s*Google Chrome$/i, "");
+  }
+  return title;
+}
+
 function commit(flush = false) {
   if (!current) return
   const end = dayjs()
