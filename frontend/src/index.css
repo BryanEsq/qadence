@@ -1,5 +1,9 @@
-@import "./wowdash.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* import compiled WowDash CSS last so it can theme/override as needed */
+@import "./wowdash/style.css";
+@import "./wowdash/remixicon.css";
+@import "./wowdash/flatpickr.min.css";
+/* optional: any local component tweaks can go here */
