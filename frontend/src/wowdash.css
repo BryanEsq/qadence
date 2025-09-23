@@ -1,0 +1,15 @@
+/* Custom Wowdash styles integrated with Tailwind */
+@layer components {
+  .wowdash-card {
+    @apply bg-white rounded-xl shadow-card p-6;
+  }
+  .wowdash-button {
+    @apply px-4 py-2 rounded-lg font-semibold text-white bg-primary hover:bg-primary-dark;
+  }
+}
+
+@layer utilities {
+  .wowdash-blur {
+    filter: blur(4px);
+  }
+}
